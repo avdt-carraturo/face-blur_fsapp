@@ -17,23 +17,19 @@ def blur_faces(input_path: str, output_path: str):
     else:
         raise ValueError("Formato non supportato")
 
-
 def _blur_image(input_path, output_path):
     image = cv2.imread(input_path)
     h, w, _ = image.shape
-
     rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     results = mp_face.process(rgb)
 
     if results.detections:
         for det in results.detections:
             bbox = det.location_data.relative_bounding_box
-
             x = int(bbox.xmin * w)
             y = int(bbox.ymin * h)
             bw = int(bbox.width * w)
             bh = int(bbox.height * h)
-
             face = image[y:y+bh, x:x+bw]
             if face.size > 0:
                 face = cv2.GaussianBlur(face, (51, 51), 0)
@@ -43,11 +39,9 @@ def _blur_image(input_path, output_path):
 
 def _blur_video(input_path, output_path):
     cap = cv2.VideoCapture(input_path)
-
     fps = cap.get(cv2.CAP_PROP_FPS)
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
@@ -62,12 +56,10 @@ def _blur_video(input_path, output_path):
         if results.detections:
             for det in results.detections:
                 bbox = det.location_data.relative_bounding_box
-
                 x = int(bbox.xmin * width)
                 y = int(bbox.ymin * height)
                 bw = int(bbox.width * width)
                 bh = int(bbox.height * height)
-
                 face = frame[y:y+bh, x:x+bw]
                 if face.size > 0:
                     face = cv2.GaussianBlur(face, (51, 51), 0)
