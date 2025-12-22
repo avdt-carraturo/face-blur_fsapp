@@ -8,7 +8,7 @@ app = FastAPI()
 
 @app.post("/blur")
 async def blur(file: UploadFile = File(...)):
-    # Estensione reale del file
+    # Manteniamo estensione originale
     suffix = os.path.splitext(file.filename)[1].lower() or ".tmp"
 
     # File temporanei unici
