@@ -2,10 +2,11 @@ import cv2
 import mediapipe as mp
 import os
 
-mp_face = mp.solutions.face_detection.FaceDetection(
+mp_face = mp.face_detection.FaceDetection(
     model_selection=1,
     min_detection_confidence=0.6
 )
+
 
 def blur_faces(input_path: str, output_path: str):
     ext = os.path.splitext(input_path)[1].lower()
