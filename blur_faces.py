@@ -2,11 +2,11 @@ import cv2
 import mediapipe as mp
 import os
 
-mp_face = mp.face_detection.FaceDetection(
-    model_selection=1,
-    min_detection_confidence=0.6
-)
+# Import corretto per mediapipe >= 1.0 su Windows/Linux
+from mediapipe.python.solutions.face_detection import FaceDetection
+from mediapipe.python.solutions.drawing_utils import _normalized_to_pixel_coordinates
 
+mp_face = FaceDetection(model_selection=1, min_detection_confidence=0.6)
 
 def blur_faces(input_path: str, output_path: str):
     ext = os.path.splitext(input_path)[1].lower()
@@ -21,16 +21,19 @@ def blur_faces(input_path: str, output_path: str):
 def _blur_image(input_path, output_path):
     image = cv2.imread(input_path)
     h, w, _ = image.shape
+
     rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     results = mp_face.process(rgb)
 
     if results.detections:
         for det in results.detections:
             bbox = det.location_data.relative_bounding_box
+
             x = int(bbox.xmin * w)
             y = int(bbox.ymin * h)
             bw = int(bbox.width * w)
             bh = int(bbox.height * h)
+
             face = image[y:y+bh, x:x+bw]
             if face.size > 0:
                 face = cv2.GaussianBlur(face, (51, 51), 0)
@@ -61,6 +64,7 @@ def _blur_video(input_path, output_path):
                 y = int(bbox.ymin * height)
                 bw = int(bbox.width * width)
                 bh = int(bbox.height * height)
+
                 face = frame[y:y+bh, x:x+bw]
                 if face.size > 0:
                     face = cv2.GaussianBlur(face, (51, 51), 0)
