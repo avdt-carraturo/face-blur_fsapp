@@ -2,11 +2,14 @@ import cv2
 import mediapipe as mp
 import os
 
-# Import corretto per mediapipe >= 1.0 su Windows/Linux
-from mediapipe.python.solutions.face_detection import FaceDetection
-from mediapipe.python.solutions.drawing_utils import _normalized_to_pixel_coordinates
+# FaceDetection “ufficiale” su Mediapipe 1.x
+mp_face_detection = mp.solutions.face_detection
+mp_drawing = mp.solutions.drawing_utils
 
-mp_face = FaceDetection(model_selection=1, min_detection_confidence=0.6)
+face_detector = mp_face_detection.FaceDetection(
+    model_selection=1,
+    min_detection_confidence=0.6
+)
 
 def blur_faces(input_path: str, output_path: str):
     ext = os.path.splitext(input_path)[1].lower()
@@ -18,17 +21,16 @@ def blur_faces(input_path: str, output_path: str):
     else:
         raise ValueError("Formato non supportato")
 
+
 def _blur_image(input_path, output_path):
     image = cv2.imread(input_path)
     h, w, _ = image.shape
-
     rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    results = mp_face.process(rgb)
+    results = face_detector.process(rgb)
 
     if results.detections:
         for det in results.detections:
             bbox = det.location_data.relative_bounding_box
-
             x = int(bbox.xmin * w)
             y = int(bbox.ymin * h)
             bw = int(bbox.width * w)
@@ -40,6 +42,7 @@ def _blur_image(input_path, output_path):
                 image[y:y+bh, x:x+bw] = face
 
     cv2.imwrite(output_path, image)
+
 
 def _blur_video(input_path, output_path):
     cap = cv2.VideoCapture(input_path)
@@ -55,7 +58,7 @@ def _blur_video(input_path, output_path):
             break
 
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = mp_face.process(rgb)
+        results = face_detector.process(rgb)
 
         if results.detections:
             for det in results.detections:
