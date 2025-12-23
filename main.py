@@ -1,10 +1,25 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import FileResponse
 from blur_faces import blur_faces
+from fastapi.middleware.cors import CORSMiddleware
 import tempfile
 import shutil
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://travelwithsecurity.netlify.app",  # Flutter web deployato
+        "http://localhost",
+        "http://localhost:*",
+        "http://127.0.0.1",
+        "http://127.0.0.1:*",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.post("/blur")
 async def blur(file: UploadFile = File(...)):
