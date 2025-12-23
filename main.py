@@ -4,6 +4,7 @@ from blur_faces import blur_faces
 from fastapi.middleware.cors import CORSMiddleware
 import tempfile
 import shutil
+import mimetypes
 
 app = FastAPI()
 app.add_middleware(
@@ -14,6 +15,7 @@ app.add_middleware(
         "http://localhost:*",
         "http://127.0.0.1",
         "http://127.0.0.1:*",
+        "*"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -23,8 +25,8 @@ app.add_middleware(
 
 @app.post("/blur")
 async def blur(file: UploadFile = File(...)):
-    ext = "." + file.filename.split(".")[-1]
-    
+    ext = "." + file.filename.split(".")[-1].lower()
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as in_tmp:
         input_path = in_tmp.name
         shutil.copyfileobj(file.file, in_tmp)
@@ -34,4 +36,10 @@ async def blur(file: UploadFile = File(...)):
 
     blur_faces(input_path, output_path)
 
-    return FileResponse(output_path, media_type="image/jpeg")
+    # Rileva il MIME type corretto
+    mime_type, _ = mimetypes.guess_type(output_path)
+    if mime_type is None:
+        # fallback generico
+        mime_type = "application/octet-stream"
+
+    return FileResponse(output_path, media_type=mime_type, filename=f"blurred{ext}")
