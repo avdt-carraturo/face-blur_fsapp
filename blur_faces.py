@@ -1,11 +1,9 @@
 import cv2
-import mediapipe as mp
 import os
 
-# Face detection funzionante Windows + Linux
-face_detector = mp.face_detection.FaceDetection(
-    model_selection=1,
-    min_detection_confidence=0.6
+# Classificatore volti OpenCV
+FACE_CASCADE = cv2.CascadeClassifier(
+    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
 
 def blur_faces(input_path: str, output_path: str):
@@ -13,56 +11,58 @@ def blur_faces(input_path: str, output_path: str):
 
     if ext in [".jpg", ".jpeg", ".png"]:
         _blur_image(input_path, output_path)
-    elif ext in [".mp4", ".mov", ".avi"]:
+    elif ext in [".mp4", ".avi", ".mov"]:
         _blur_video(input_path, output_path)
     else:
         raise ValueError("Formato non supportato")
 
+
 def _blur_image(input_path, output_path):
-    image = cv2.imread(input_path)
-    h, w, _ = image.shape
-    rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    results = face_detector.process(rgb)
+    img = cv2.imread(input_path)
+    if img is None:
+        raise ValueError(f"Impossibile leggere il file: {input_path}")
 
-    if results.detections:
-        for det in results.detections:
-            bbox = det.location_data.relative_bounding_box
-            x = int(bbox.xmin * w)
-            y = int(bbox.ymin * h)
-            bw = int(bbox.width * w)
-            bh = int(bbox.height * h)
-            face = image[y:y+bh, x:x+bw]
-            if face.size > 0:
-                face = cv2.GaussianBlur(face, (51, 51), 0)
-                image[y:y+bh, x:x+bw] = face
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    cv2.imwrite(output_path, image)
+    faces = FACE_CASCADE.detectMultiScale(gray, 1.3, 5)
+
+    for (x, y, w, h) in faces:
+        face = img[y:y+h, x:x+w]
+        face = cv2.GaussianBlur(face, (201, 201), 0)
+        img[y:y+h, x:x+w] = face
+
+    cv2.imwrite(output_path, img)
+
 
 def _blur_video(input_path, output_path):
     cap = cv2.VideoCapture(input_path)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+    if cap is None:
+        raise ValueError(f"Impossibile leggere il file: {input_path}")
 
-    while cap.isOpened():
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    out = cv2.VideoWriter(
+        output_path,
+        cv2.VideoWriter_fourcc(*"mp4v"),
+        fps,
+        (w, h),
+    )
+
+    while True:
         ret, frame = cap.read()
         if not ret:
             break
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = face_detector.process(rgb)
-        if results.detections:
-            for det in results.detections:
-                bbox = det.location_data.relative_bounding_box
-                x = int(bbox.xmin * width)
-                y = int(bbox.ymin * height)
-                bw = int(bbox.width * width)
-                bh = int(bbox.height * height)
-                face = frame[y:y+bh, x:x+bw]
-                if face.size > 0:
-                    face = cv2.GaussianBlur(face, (51, 51), 0)
-                    frame[y:y+bh, x:x+bw] = face
+
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = FACE_CASCADE.detectMultiScale(gray, 1.3, 5)
+
+        for (x, y, fw, fh) in faces:
+            face = frame[y:y+fh, x:x+fw]
+            face = cv2.GaussianBlur(face, (51, 51), 0)
+            frame[y:y+fh, x:x+fw] = face
+
         out.write(frame)
 
     cap.release()
